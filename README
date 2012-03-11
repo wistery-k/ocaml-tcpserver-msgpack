@@ -1,0 +1,11 @@
+MessagePackのように、容易に切れ目が分かるデータをtcpでやり取りする用モジュール
+
+自分の動作環境
+Ubuntu 64bit
+OCaml 3.12.1
+OCaml Batteries Included 1.4.1 (ほとんど使ってない)
+MessagePack OCaml 0.1.0
+
+メモ
+Msgpack.Unpackerは全くテストしてない（あとで使うときにバグってから考える）
+Msgpack.UnpackerにはUnimplementedがいくつかある(ほげ32系はマジキチすぎでは...)
