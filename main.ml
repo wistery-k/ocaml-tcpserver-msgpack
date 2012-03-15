@@ -1,20 +1,20 @@
 open BatStd
 
 module Msgpack = struct
-
+    
   include Msgpack
-
+    
   module Unpacker : sig
-
+      
     exception Unimplemented of string
-
+        
     val execute : string -> int
-
+      
   end = struct 
-
+      
     exception Unimplemented of string
     exception Overrun
-
+      
     let rec repeat n f x =
       if n = 0 then x
       else repeat (n-1) f (f x)
@@ -23,58 +23,59 @@ module Msgpack = struct
       let s = s |> BatString.to_list |> List.map int_of_char |> Array.of_list in
       let n = Array.length s in
       let rec execute' i = 
-        let n = n-i in
-        if n = 0 then
+        if i >= n then
           raise Overrun
         else match s.(i) with
-          | x when x lsr 7 = 0b0 -> 1
-          | x when x lsr 5 = 0b111 -> 1
-          | 0xcc -> 2
-          | 0xcd -> 2
-          | 0xce -> 2
-          | 0xcf -> 2
-          | 0xd0 -> 2
-          | 0xd1 -> 2
-          | 0xd2 -> 2
-          | 0xd3 -> 2
-          | 0xc0 -> 2
-          | 0xc3 -> 2
-          | 0xc2 -> 2
-          | 0xca -> 5
-          | 0xcb -> 9
+          | x when x lsr 7 = 0b0 -> 1+i
+          | x when x lsr 5 = 0b111 -> 1+i
+          | 0xcc -> 2+i
+          | 0xcd -> 3+i
+          | 0xce -> 5+i
+          | 0xcf -> 9+i
+          | 0xd0 -> 2+i
+          | 0xd1 -> 3+i
+          | 0xd2 -> 5+i
+          | 0xd3 -> 9+i
+          | 0xc0 -> 1+i
+          | 0xc3 -> 1+i
+          | 0xc2 -> 1+i
+          | 0xca -> 5+i
+          | 0xcb -> 9+i
           | x when x lsr 5 = 0b101 -> 
             let m = x land 0b11111 in 
-            if m+1 <= n then m+1 
+            if m+1+i <= n then m+1+i 
             else raise Overrun
           | 0xda -> 
             if n < 3 then raise Overrun 
-            else let m = 256 * s.(i+1) + s.(i+2) in 
-                 if m+1 <= n 
-                 then m+1 else raise Overrun
+            else let m = 256 * s.(1+i) + s.(2+i) in 
+                 if m+3+i <= n 
+                 then m+3+i 
+                 else raise Overrun
           | 0xdb ->
             raise (Unimplemented "raw32")
           | x when x lsr 4 = 0b1001 -> 
             let m = x land 0b1111 in
-            repeat m execute' (i+1)
+            repeat m execute' (1+i)
           | 0xdc -> 
             if n < 3 then raise Overrun
-            else let m = 256 * s.(i+1) + s.(i+2) in
-                 repeat m execute' (i+3)
+            else let m = 256 * s.(1+i) + s.(2+i) in
+                 repeat m execute' (3+i)
           | 0xdd -> raise (Unimplemented "array32")
           | x when x lsr 4 = 0b1000 -> 
             let m = x land 0b1111 in
-            repeat (m*2) execute' (i+1)
+            repeat (m*2) execute' (1+i)
           | 0xde -> 
             if n < 3 then raise Overrun
-            else let m = 256 * s.(i+1) + s.(i+2) in
-                 repeat m execute' (i+3)
+            else let m = 256 * s.(1+i) + s.(2+i) in
+                 repeat (m*2) execute' (3+i)
           | 0xdf -> raise (Unimplemented "map32")
           | _ -> invalid_arg "Msgpack.Unpacker.execute"
       in
       try execute' 0 with Overrun -> 0
   end
-
+    
 end
+
 
 module TcpServer : sig
 
